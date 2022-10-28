@@ -30,7 +30,7 @@ var (
 	MaxConcurrency  = runtime.NumCPU() - 2
 	txMap           map[string]time.Time
 	txMapCrossChain map[string]time.Time
-	model           = "cosmos_crosschain" //cosmos_crosschain cosmos_nocrosschain
+	model           = "cosmos_nocrosschain" //cosmos_crosschain cosmos_nocrosschain
 )
 
 func createRandomAccounts(accNum int) []sdk.AccAddress {
@@ -47,7 +47,7 @@ func main() {
 	txMap = make(map[string]time.Time)
 	txMapCrossChain = make(map[string]time.Time)
 	var (
-		mesuringDuration = 60 * time.Second
+		mesuringDuration = 600 * time.Second
 		queueSize        = 100
 		concurrency      = 1
 		queue            = tps.NewQueue(queueSize)
@@ -163,8 +163,8 @@ func main() {
 			count++
 		}
 	}()
-	client1, _ := NewClient("tcp://localhost:26659")
-	if err = tps.StartTPSMeasuring(context.Background(), &client1, &closing, &idlingDuration, logger); err != nil {
+	//client1, _ := NewClient("tcp://localhost:26659")
+	if err = tps.StartTPSMeasuring(context.Background(), &client_list[0], &closing, &idlingDuration, logger); err != nil {
 		logger.Fatal("err StartTPSMeasuring: ", err)
 	}
 }

@@ -110,9 +110,10 @@ func (c CosmosClient) CountTx(ctx context.Context, height uint64) (int, time.Dur
 	result := 0
 	if model == "cosmos_nocrosschain" {
 		for _, tx := range res.Block.Data.Txs {
+			mutex.Lock()
 			startTime := txMap[string(tx.Hash())]
 			mutex.Unlock()
-			elapsedTime = elapsedTime + time.Since(startTime)/time.Millisecond
+			elapsedTime = elapsedTime + time.Since(startTime)
 			result += 1
 		}
 		if result != 0 {
@@ -121,15 +122,23 @@ func (c CosmosClient) CountTx(ctx context.Context, height uint64) (int, time.Dur
 	} else {
 
 		for _, tx := range res.Block.Data.Txs {
+			fmt.Println(tx)
 			resultTx, _ := c.clientHTTP.Tx(ctx, tx.Hash(), false)
+			if resultTx == nil {
+				continue
+			}
 			fmt.Println(resultTx.TxResult.Log)
 			matchStr := regexp.MustCompile("\"key\":\"packet_sequence\",\"value\":\"(.*?)\"").FindStringSubmatch(resultTx.TxResult.Log)
 			if len(matchStr) > 0 {
 				fmt.Println("YES", matchStr[len(matchStr)-1])
 				mutex.Lock()
-				startTime := txMapCrossChain[matchStr[len(matchStr)-1]]
+				startTime, ok := txMapCrossChain[matchStr[len(matchStr)-1]]
 				mutex.Unlock()
-				elapsedTime = elapsedTime + time.Since(startTime)/time.Second
+				elapsedTime = elapsedTime + time.Since(startTime)/time.Millisecond
+				if ok {
+					fmt.Println("!", time.Since(startTime))
+				}
+
 				result += 1
 			}
 		}
@@ -139,8 +148,12 @@ func (c CosmosClient) CountTx(ctx context.Context, height uint64) (int, time.Dur
 
 	}
 	//res.Block.Data.Txs[0].Hash()
+	if result != 0 {
+		return len(res.Block.Data.Txs), elapsedTime / time.Duration(result), nil
+	} else {
+		return len(res.Block.Data.Txs), 0, nil
+	}
 
-	return len(res.Block.Data.Txs), elapsedTime / time.Duration(result), nil
 }
 
 func (c CosmosClient) CountPendingTx(ctx context.Context) (int, error) {
@@ -258,6 +271,7 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 	timeoutHeight = clientHeight + 1000
 	timeoutTimestamp = 0
 	token, err := sdk.ParseCoinNormalized("1token")
+	time.Sleep(1000 * time.Millisecond)
 	if model == "cosmos_nocrosschain" {
 		var (
 			from  = AccAddressFromPriv(priv)
@@ -265,7 +279,7 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 			msg   = banktypes.NewMsgSend(from, to, coins)
 		)
 		//fmt.Println(msg1)
-		tx, err := c.BuildTx(msg, priv, seq)
+		tx, err := c.BuildTx(msg, priv, seq-1)
 		if err != nil {
 			return nil, err
 		}
@@ -307,13 +321,13 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 			//from  = AccAddressFromPriv(priv)
 			//coins = sdk.NewCoins(sdk.NewInt64Coin(Denom, amount))
 			//msg   = banktypes.NewMsgSend(from, to, coins)
-			msg1 = transfertypes.NewMsgTransfer("transfer", "channel-3", token, "earth1gfeyrlp5j2syevfu5x5vmdzz2625yjgn9uq84m", "mars1fz4yc8fcm0jl8kvxx3r6nrpc6hpppy4sca79fy", clienttypes.Height{
+			msg1 = transfertypes.NewMsgTransfer("transfer", "channel-4", token, "earth1gfeyrlp5j2syevfu5x5vmdzz2625yjgn9uq84m", "mars1fz4yc8fcm0jl8kvxx3r6nrpc6hpppy4sca79fy", clienttypes.Height{
 				RevisionNumber: clientHeight,
 				RevisionHeight: timeoutHeight,
 			}, timeoutTimestamp)
 		)
 		//fmt.Println(msg1)
-		tx, err := c.BuildTx(msg1, priv, seq)
+		tx, err := c.BuildTx(msg1, priv, seq-1)
 		if err != nil {
 			return nil, err
 		}
@@ -323,8 +337,9 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 			return nil, err
 		}
 
-		//res, err := c.clientHTTP.BroadcastTxSync(ctx, txBytes)
-		res, err := c.clientHTTP.BroadcastTxAsync(ctx, txBytes)
+		res, err := c.clientHTTP.BroadcastTxSync(ctx, txBytes)
+		//res, err := c.clientHTTP.BroadcastTxAsync(ctx, txBytes)
+		fmt.Println(res)
 		//fmt.Println(res.Code)
 		time.Sleep(5 * time.Second)
 		resultTx, _ := c.clientHTTP.Tx(ctx, res.Hash, false)
