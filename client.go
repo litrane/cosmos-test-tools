@@ -34,14 +34,14 @@ import (
 )
 
 const (
-	DefalultRPCURI = "tcp://localhost:26657"
+	DefalultRPCURI = "tcp://127.0.0.1:26657"
 )
 
 var (
 	_ tps.Client = (*CosmosClient)(nil)
 
 	ChainID              = "earth"
-	Denom                = "token"
+	Denom                = "coin"
 	AccountAddressPrefix = "earth"
 
 	accNums = make(map[string]uint64)
@@ -122,8 +122,10 @@ func (c CosmosClient) CountTx(ctx context.Context, height uint64) (int, time.Dur
 	} else {
 
 		for _, tx := range res.Block.Data.Txs {
-			fmt.Println(tx)
+			//fmt.Println(tx)
+			time.Sleep(200 * time.Millisecond)
 			resultTx, _ := c.clientHTTP.Tx(ctx, tx.Hash(), false)
+			//time.Sleep(200 * time.Millisecond)
 			if resultTx == nil {
 				continue
 			}
@@ -134,7 +136,8 @@ func (c CosmosClient) CountTx(ctx context.Context, height uint64) (int, time.Dur
 				mutex.Lock()
 				startTime, ok := txMapCrossChain[matchStr[len(matchStr)-1]]
 				mutex.Unlock()
-				elapsedTime = elapsedTime + time.Since(startTime)/time.Millisecond
+				fmt.Println(time.Since(startTime))
+				elapsedTime = elapsedTime + time.Since(startTime)
 				if ok {
 					fmt.Println("!", time.Since(startTime))
 				}
@@ -258,6 +261,8 @@ type intoAny interface {
 	AsAny() *codectypes.Any
 }
 
+var coun int = 0
+
 func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, to sdk.AccAddress, amount int64) (*ctypes.ResultBroadcastTx, error) {
 	priv, err := PrivFromString(privStr)
 	if err != nil {
@@ -270,7 +275,7 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 	clientHeight, _ := c.LatestBlockHeight(ctx)
 	timeoutHeight = clientHeight + 1000
 	timeoutTimestamp = 0
-	token, err := sdk.ParseCoinNormalized("1token")
+	token, err := sdk.ParseCoinNormalized("1coin")
 	time.Sleep(1000 * time.Millisecond)
 	if model == "cosmos_nocrosschain" {
 		var (
@@ -321,12 +326,12 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 			//from  = AccAddressFromPriv(priv)
 			//coins = sdk.NewCoins(sdk.NewInt64Coin(Denom, amount))
 			//msg   = banktypes.NewMsgSend(from, to, coins)
-			msg1 = transfertypes.NewMsgTransfer("transfer", "channel-4", token, "earth1gfeyrlp5j2syevfu5x5vmdzz2625yjgn9uq84m", "mars1fz4yc8fcm0jl8kvxx3r6nrpc6hpppy4sca79fy", clienttypes.Height{
+			msg1 = transfertypes.NewMsgTransfer("transfer", "channel-0", token, "earth1v7vay6uyg3n47ypzegtdd8v2kv7glvqtym4dr7", "mars1vd39966gj72wzsvvltcspzvdu7a545gkgfrvem", clienttypes.Height{
 				RevisionNumber: clientHeight,
 				RevisionHeight: timeoutHeight,
 			}, timeoutTimestamp)
 		)
-		//fmt.Println(msg1)
+		fmt.Println(seq)
 		tx, err := c.BuildTx(msg1, priv, seq-1)
 		if err != nil {
 			return nil, err
@@ -336,22 +341,28 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 		if err != nil {
 			return nil, err
 		}
-
+		// if coun == 4 {
+		// 	return nil, nil
+		// }
 		res, err := c.clientHTTP.BroadcastTxSync(ctx, txBytes)
 		//res, err := c.clientHTTP.BroadcastTxAsync(ctx, txBytes)
-		fmt.Println(res)
+		//fmt.Println(res)
 		//fmt.Println(res.Code)
-		time.Sleep(5 * time.Second)
+		time.Sleep(3 * time.Second)
 		resultTx, _ := c.clientHTTP.Tx(ctx, res.Hash, false)
-		//fmt.Println(resultTx.TxResult.Log)
-		if resultTx != nil && resultTx.TxResult.Log != "" {
-			matchStr := regexp.MustCompile("\"key\":\"packet_sequence\",\"value\":\"(.*?)\"").FindStringSubmatch(resultTx.TxResult.Log)
-			if len(matchStr) != 0 {
-				//fmt.Println(matchStr[len(matchStr)-1])
-				startTime := time.Now()
-				mutex.Lock()
-				txMapCrossChain[matchStr[len(matchStr)-1]] = startTime
-				mutex.Unlock()
+		if resultTx != nil {
+			fmt.Println(resultTx.TxResult.Log)
+
+			if resultTx != nil && resultTx.TxResult.Log != "" {
+				matchStr := regexp.MustCompile("\"key\":\"packet_sequence\",\"value\":\"(.*?)\"").FindStringSubmatch(resultTx.TxResult.Log)
+				if len(matchStr) != 0 {
+					//fmt.Println(matchStr[len(matchStr)-1])
+					startTime := time.Now()
+					mutex.Lock()
+					txMapCrossChain[matchStr[len(matchStr)-1]] = startTime
+					fmt.Println("have ", matchStr[len(matchStr)-1])
+					mutex.Unlock()
+				}
 			}
 		}
 
@@ -374,6 +385,8 @@ func (c *CosmosClient) SendTx(ctx context.Context, privStr string, seq uint64, t
 		if res.Code != 0 {
 			return nil, fmt.Errorf("code: %d, log: %s, codespace: %s\n", res.Code, res.Log, res.Codespace)
 		}
+		//coun += 1
+
 		return res, nil
 	}
 

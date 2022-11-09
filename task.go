@@ -41,7 +41,7 @@ func (t *CosmTask) IncrementTryCount() error {
 }
 
 func (t *CosmTask) Do(ctx context.Context, client *CosmosClient, priv string, nonce uint64, queue *tps.Queue, logger tps.Logger) error {
-	res, rootErr := client.SendTx(ctx, priv, nonce, t.to, t.amount)
+	_, rootErr := client.SendTx(ctx, priv, nonce, t.to, t.amount)
 	if rootErr != nil {
 		if strings.Contains(rootErr.Error(), "invalid sequence") {
 			logger.Warn(fmt.Sprintf("nonce error, %s", rootErr.Error()))
@@ -56,6 +56,6 @@ func (t *CosmTask) Do(ctx context.Context, client *CosmosClient, priv string, no
 		return nil
 	}
 
-	logger.Info(fmt.Sprintf("succeed sending tx, hash: %s, nonce: %d", res.Hash, nonce))
+	//logger.Info(fmt.Sprintf("succeed sending tx, hash: %s, nonce: %d", res.Hash, nonce))
 	return nil
 }

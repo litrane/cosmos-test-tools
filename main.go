@@ -18,10 +18,10 @@ import (
 
 var (
 	Endpoint = []string{
-		"tcp://localhost:26657",
+		"tcp://127.0.0.1:26657",
 	}
 	mutex    sync.Mutex
-	PrivKey  = "89d7757069d1e58512975b36f89343ecc21bb2b34bba7f04f3943c97554cbe63"
+	PrivKey  = "656575bd1f7f9710f2f0780de101294f4524e5f9eac4a6d23b7c64ada4e74f24"
 	PrivKey2 = "e4b87f532e3c009ca45089811b6302c2b39ea9be97d5b718748671cd9f268777"
 	PrivKey3 = "098cc9ba1d5109b4b81fc06859dc99950617e9d50127ca940e8298bd9fb3c6eb"
 	// PrivKey4 = "098cc9ba1d5109b4b81fc06859dc99950617e9d50127ca940e8298bd9fb3c6eb"
@@ -30,7 +30,7 @@ var (
 	MaxConcurrency  = runtime.NumCPU() - 2
 	txMap           map[string]time.Time
 	txMapCrossChain map[string]time.Time
-	model           = "cosmos_nocrosschain" //cosmos_crosschain cosmos_nocrosschain
+	model           = "cosmos_crosschain" //cosmos_crosschain cosmos_nocrosschain
 )
 
 func createRandomAccounts(accNum int) []sdk.AccAddress {
@@ -163,8 +163,8 @@ func main() {
 			count++
 		}
 	}()
-	//client1, _ := NewClient("tcp://localhost:26659")
-	if err = tps.StartTPSMeasuring(context.Background(), &client_list[0], &closing, &idlingDuration, logger); err != nil {
+	client1, _ := NewClient("tcp://127.0.0.1:26658")
+	if err = tps.StartTPSMeasuring(context.Background(), client1, &closing, &idlingDuration, logger); err != nil {
 		logger.Fatal("err StartTPSMeasuring: ", err)
 	}
 }
