@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	DefalultRPCURI = "tcp://127.0.0.1:26657"
+	DefalultRPCURI = "tcp://10.10.1.1:26657"
 )
 
 var (
@@ -78,7 +78,7 @@ func NewClient(rpcURI string) (CosmosClient, error) {
 		return c, err
 	}
 
-	if c.conn, err = grpc.Dial("127.0.0.1:9090", grpc.WithInsecure()); err != nil {
+	if c.conn, err = grpc.Dial("10.10.1.1:9090", grpc.WithInsecure()); err != nil {
 		return c, err
 	}
 

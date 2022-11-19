@@ -18,7 +18,7 @@ import (
 
 var (
 	Endpoint = []string{
-		"tcp://127.0.0.1:26657",
+		"tcp://10.10.1.1:26657",
 	}
 	mutex    sync.Mutex
 	PrivKey  = "656575bd1f7f9710f2f0780de101294f4524e5f9eac4a6d23b7c64ada4e74f24"
@@ -68,6 +68,7 @@ func main() {
 	go func() {
 		defer atomic.AddUint32(&closing, 1)
 		time.Sleep(mesuringDuration)
+		fmt.Println("over------------------------")
 	}()
 	var client_list []CosmosClient
 	// client, err := NewClient(Endpoint[0])
@@ -163,7 +164,7 @@ func main() {
 			count++
 		}
 	}()
-	client1, _ := NewClient("tcp://127.0.0.1:26658")
+	client1, _ := NewClient("tcp://10.10.1.5:26657")
 	if err = tps.StartTPSMeasuring(context.Background(), client1, &closing, &idlingDuration, logger); err != nil {
 		logger.Fatal("err StartTPSMeasuring: ", err)
 	}

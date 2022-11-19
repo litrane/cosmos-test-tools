@@ -22,9 +22,11 @@ func StartTPSMeasuring(ctx context.Context, client Client, closing, idlingDurati
 		avg_latency time.Duration
 		latency_num int
 		latency_sum *big.Int
+		start1      time.Time
+		start2      time.Time
 	)
-	latency_num=0
-	latency_sum=big.NewInt(0)
+	latency_num = 0
+	latency_sum = big.NewInt(0)
 	for {
 		if atomic.LoadUint32(closing) == 1 {
 			break
@@ -43,7 +45,9 @@ func StartTPSMeasuring(ctx context.Context, client Client, closing, idlingDurati
 			//TODO: handle timeout error
 			return errors.Wrap(err, "err CountTx")
 		}
-
+		start1 = start2
+		start2 = time.Now()
+		fmt.Println("chukuai", time.Since(start1))
 		if idling {
 			if count > 0 {
 				idling = false
@@ -63,13 +67,13 @@ func StartTPSMeasuring(ctx context.Context, client Client, closing, idlingDurati
 		latency_num += count
 		latency_sum.Add(big.NewInt(int64(avg_latency)), latency_sum)
 		elapsed := time.Now().Sub(startedAd).Seconds()
-		latency_time:= time.Duration(big.NewInt(0).Int64())
-		if(count!=0){
+		latency_time := time.Duration(big.NewInt(0).Int64())
+		if count != 0 {
 			latency_time = time.Duration(big.NewInt(0).Div(latency_sum, big.NewInt(int64(latency_num))).Int64())
-		} 
+		}
 		fmt.Print("------------------------------------------------------------------------------------\n")
 		fmt.Printf("⛓  %d th Block Mind! txs(%d), total txs(%d), TPS(%.2f), pendig txs(%d),latency(%dms)\n", lastBlock, count, total, float64(total)/elapsed, pendingTx, latency_time)
-	fmt.Println(latency_time)
+		fmt.Println(latency_time)
 	}
 
 	return nil
